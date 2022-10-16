@@ -1,0 +1,36 @@
+---
+version: "3.1"
+
+networks:
+  proxy:
+    external: true
+
+services:
+  heimdall:
+    image: linuxserver/heimdall:2.4.13
+    networks:
+      - proxy
+    environment:
+      #  - PUID=1027 # sould be something else 0 (root)
+      #  - PGID=65536  # sould be something else 0 (root)
+      - TZ=Europe/Paris
+    volumes:
+      - $PWD/data/config:/config
+    ports:
+      - 8082:80
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges=true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.heimdall.entrypoints=http"
+      - "traefik.http.routers.heimdall.rule=Host(`heimdall.example.com`)"
+      - "traefik.http.middlewares.heimdall-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.heimdall.middlewares=heimdall-https-redirect"
+      - "traefik.http.routers.heimdall-secure.entrypoints=https"
+      - "traefik.http.routers.heimdall-secure.rule=Host(`heimdall.example.com`)"
+      - "traefik.http.routers.heimdall-secure.tls=true"
+      - "traefik.http.routers.heimdall-secure.service=heimdall"
+      - "traefik.http.services.heimdall.loadbalancer.server.port=80"
+      - 'traefik.http.routers.heimdall-secure.middlewares=authelia@docker'
+
